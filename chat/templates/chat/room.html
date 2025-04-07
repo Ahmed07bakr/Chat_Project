@@ -13,6 +13,24 @@
       <button id="chat-message-submit" class="bg-blue-500 text-white px-4 rounded-r">Send</button>
     </div>
   </div>
+  <script>
+    document.querySelector('#chat-message-input').addEventListener('input', function () {
+      chatSocket.send(JSON.stringify({
+        'type': 'typing'
+      }));
+    });
+
+    chatSocket.onmessage = function (e) {
+      const data = JSON.parse(e.data);
+      if (data.type === 'typing') {
+        document.querySelector('#chat-log').innerHTML += `<p class="italic text-sm text-gray-500">${data.sender} is typing...</p>`;
+        return;
+      }
+
+    
+    };
+
+  </script>
 </body>
 
 </html>

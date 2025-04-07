@@ -35,7 +35,9 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         original_text = self.request.data.get("original_text")
-        target_lang = self.request.data.get("language", "en")
+        user = self.scope["user"]
+        target_lang = user.userprofile.preferred_language
+
         translated = translator.translate(original_text, dest=target_lang).text
 
         serializer.save(
@@ -46,6 +48,12 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Message.objects.filter(sender=self.request.user) | Message.objects.filter(conversation__participants=self.request.user)
+
+
+@login_required
+def conversation_list(request):
+    conversations = Conversation.objects.filter(participants=request.user)
+    return render(request, "chat/conversations.html", {"conversations": conversations})
 
 
 

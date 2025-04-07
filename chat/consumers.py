@@ -3,6 +3,9 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib.auth.models import User
 from .models import Conversation, Message
 from googletrans import Translator
+from asgiref.sync import sync_to_async
+
+
 
 translator = Translator()
 
@@ -22,20 +25,32 @@ class ChatConsumer(AsyncWebsocketConsumer):
         conversation = await self.get_conversation(self.conversation_id)
 
         original_text = data['message']
-        target_lang = data.get('language', 'en')
+        target_lang = user.userprofile.preferred_language
+
         translated = translator.translate(original_text, dest=target_lang).text
 
         message = await self.create_message(conversation, user, original_text, translated, target_lang)
+        if data.get('type') == 'typing':
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'type': 'typing_status',
+                    'message': translated,
+                    'sender': user.username,
+                    'timestamp': str(message.timestamp),
+                }
+            )
+            return
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': translated,
-                'sender': user.username,
-                'timestamp': str(message.timestamp),
-            }
-        )
+
+
+    async def typing_status(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'typing',
+            'sender': event['sender']
+        }))
+
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps(event))
@@ -54,5 +69,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
             language=lang,
         )
 
-from asgiref.sync import sync_to_async
 database_sync_to_async = sync_to_async
