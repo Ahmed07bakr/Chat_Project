@@ -1,36 +1,90 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Chat Room</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 p-4 font-sans">
-  <div class="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-4">
-    <h1 class="text-xl font-bold mb-4">Chat Room</h1>
-    <div id="chat-log" class="h-64 overflow-y-scroll border p-2 mb-4 bg-gray-50 rounded"></div>
-    <div class="flex">
-      <input id="chat-message-input" type="text" class="flex-1 p-2 border rounded-l" placeholder="Type your message">
-      <button id="chat-message-submit" class="bg-blue-500 text-white px-4 rounded-r">Send</button>
-    </div>
-  </div>
-  <script>
-    document.querySelector('#chat-message-input').addEventListener('input', function () {
-      chatSocket.send(JSON.stringify({
-        'type': 'typing'
-      }));
-    });
-
-    chatSocket.onmessage = function (e) {
-      const data = JSON.parse(e.data);
-      if (data.type === 'typing') {
-        document.querySelector('#chat-log').innerHTML += `<p class="italic text-sm text-gray-500">${data.sender} is typing...</p>`;
-        return;
+  <head>
+    <title>Chat Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.4/dist/index.min.js"></script>
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
       }
-
+    </script>
     
-    };
+    
 
-  </script>
-</body>
+  </head>
+  <body class="bg-gray-100 p-4 font-sans">
+    <div class="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-4">
+      <h1 class="text-xl font-bold mb-4">Chat Room</h1>
+      <button id="dark-mode-toggle" class="p-1 bg-gray-200">🌓</button>
+      <div id="chat-log" class="h-64 overflow-y-scroll border p-2 mb-4 bg-gray-50 rounded"></div>
+      <div class="flex">
+        <input id="chat-message-input" type="text" class="flex-1 p-2 border rounded-l" placeholder="Type your message">
+        <!-- in message render -->
+        <p>
+          <b>${data.sender}:</b> ${data.message}
+          <button onclick="sendReaction(MESSAGE_ID_HERE, '❤️')">❤️</button>
+        </p>
+
+        <button id="emoji-button" class="ml-2">😀</button>
+
+        <input type="file" id="chat-image-input" />
+
+        <button id="chat-message-submit" class="bg-blue-500 text-white px-4 rounded-r">Send</button>
+        
+
+      </div>
+    </div>
+    <script>
+      document.querySelector('#chat-message-input').addEventListener('input', function () {
+        chatSocket.send(JSON.stringify({
+          'type': 'typing'
+        }));
+      });
+
+      chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        if (data.type === 'typing') {
+          document.querySelector('#chat-log').innerHTML += `<p class="italic text-sm text-gray-500">${data.sender} is typing...</p>`;
+          return;
+        }
+
+      
+      };
+
+    </script>
+    <script>
+      const picker = new EmojiButton();
+      const trigger = document.querySelector('#emoji-button');
+      const input = document.querySelector('#chat-message-input');
+
+      if (data.type === 'reaction') {
+
+        function sendReaction(messageId, emoji) {
+          chatSocket.send(JSON.stringify({
+            type: 'reaction',
+            message_id: messageId,
+            emoji: emoji
+          }));
+        }
+    
+      }
+    
+      picker.on('emoji', emoji => {
+        input.value += emoji;
+      });
+    
+      trigger.addEventListener('click', () => {
+        picker.togglePicker(trigger);
+      });
+    </script>
+    <script>
+      const toggle = document.querySelector('#dark-mode-toggle');
+      toggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark');
+      });
+    </script>
+  </body>
 
 </html>

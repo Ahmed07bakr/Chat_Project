@@ -42,6 +42,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
             return
+        elif data.get('type') == 'reaction':
+            message_id = data['message_id']
+            emoji = data['emoji']
+
+            message = await database_sync_to_async(Message.objects.get)(id=message_id)
+            message.reactions.append(emoji)
+            await database_sync_to_async(message.save)()
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'reaction',
+                    'message_id': message_id,
+                    'emoji': emoji,
+                    'sender': self.scope["user"].username
+                }
+            )
+    
+
+    
+
+    async def reaction(self, event):
+        await self.send(text_data=json.dumps(event))
+
+
 
 
 

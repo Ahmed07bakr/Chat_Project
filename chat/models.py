@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.contrib.postgres.fields import ArrayField
 
 class Conversation(models.Model):
     participants = models.ManyToManyField(User)
@@ -14,6 +15,11 @@ class Message(models.Model):
     translated_text = models.TextField(blank=True, null=True)
     language = models.CharField(max_length=10, default='en')  # Language of translated_text
     timestamp = models.DateTimeField(auto_now_add=True)
+    image = models.ImageField(upload_to='chat_images/', blank=True, null=True)
+    reactions = ArrayField(models.CharField(max_length=10), default=list, blank=True)
+
+    
+
 
     class Meta:
         ordering = ['timestamp']
