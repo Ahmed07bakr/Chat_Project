@@ -7,6 +7,9 @@ from django.contrib.auth.models import User
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer, UserSerializer
 from googletrans import Translator
+from django.shortcuts import get_object_or_404, redirect
+from .models import UserRating, UserFeedback
+from django.contrib.admin.views.decorators import staff_member_required
 
 translator = Translator()
 
@@ -56,6 +59,71 @@ def conversation_list(request):
     return render(request, "chat/conversations.html", {"conversations": conversations})
 
 
+from django.shortcuts import get_object_or_404, redirect
+from .models import UserRating
+
+@login_required
+def rate_user(request, user_id):
+    if request.method == "POST":
+        rated_user = get_object_or_404(User, id=user_id)
+        stars = int(request.POST.get("stars"))
+        UserRating.objects.update_or_create(
+            rater=request.user,
+            rated_user=rated_user,
+            defaults={"stars": stars}
+        )
+    return redirect("conversation_list")
+
+
+
+@login_required
+def submit_feedback(request, user_id):
+    target = get_object_or_404(User, id=user_id)
+    if request.method == "POST":
+        report = request.POST.get("report") == "on"
+        stars = int(request.POST.get("stars")) if not report else None
+
+        UserFeedback.objects.update_or_create(
+            rater=request.user,
+            target=target,
+            defaults={
+                "stars": stars,
+                "reported": report
+            }
+        )
+
+    return redirect("conversation_list")  # or wherever you want to go next
+
+
+def feedback_form(request, user_id):
+    target = get_object_or_404(User, id=user_id)
+    existing = UserFeedback.objects.filter(rater=request.user, target=target).first()
+
+    return render(request, "feedback_form.html", {
+        "target": target,
+        "existing": existing
+    })
+
+
+
+@staff_member_required
+def moderation_dashboard(request):
+    users = User.objects.all()
+    data = []
+    for user in users:
+        stats = user.feedback_stats
+        if stats["report_count"] > 0 or stats["average_stars"] > 0:
+            data.append({
+                "user": user,
+                "reports": stats["report_count"],
+                "avg": stats["average_stars"],
+            })
+
+    return render(request, "moderation.html", {"users": data})
+
+
+# user.feedback_stats["average_stars"]  
+# user.feedback_stats["report_count"]
 
 
 

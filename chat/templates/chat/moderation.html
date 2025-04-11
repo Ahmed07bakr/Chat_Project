@@ -1,0 +1,19 @@
+<h2 class="text-xl font-bold mb-4">🛡️ Moderation Dashboard</h2>
+<table class="table-auto w-full">
+  <thead>
+    <tr>
+      <th>User</th>
+      <th>Average Stars</th>
+      <th>Reports</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+      <tr class="border-t">
+        <td>{{ u.user.username }}</td>
+        <td>{{ u.avg|floatformat:1 }}</td>
+        <td class="text-red-500">{{ u.reports }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

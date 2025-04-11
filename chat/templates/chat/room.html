@@ -12,6 +12,7 @@
     </script>
     
     
+    
 
   </head>
   <body class="bg-gray-100 p-4 font-sans">
@@ -32,10 +33,83 @@
         <input type="file" id="chat-image-input" />
 
         <button id="chat-message-submit" class="bg-blue-500 text-white px-4 rounded-r">Send</button>
+        <div class="flex items-center">
+          {% with stars=user.average_rating|floatformat:0 %}
+            {% for i in "12345" %}
+              {% if i|add:"0"|int <= stars|add:"0"|int %}
+                <span class="text-yellow-400 text-xl">★</span>
+              {% else %}
+                <span class="text-gray-300 text-xl">★</span>
+              {% endif %}
+            {% endfor %}
+            <span class="ml-2 text-sm text-gray-500">({{ user.average_rating|floatformat:1 }})</span>
+          {% endwith %}
+        </div>
+        
         
 
       </div>
     </div>
+    <form method="POST" action="{% url 'rate_user' rated_user.id %}">
+      {% csrf_token %}
+      <label for="stars">Rate this user:</label>
+      <select name="stars" class="border ml-2">
+        {% for i in "12345" %}
+          <option value="{{ i }}">{{ i }} ⭐</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="bg-blue-500 text-white px-2 py-1 rounded">Submit</button>
+    </form>
+    {% if existing %}
+      <p class="text-green-600 font-semibold mb-2">
+        ✅ You already gave feedback: 
+        {% if existing.reported %} 🚨 Reported
+        {% else %}
+          {{ existing.stars }} ⭐
+        {% endif %}
+      </p>
+    {% else %}
+      <!-- show form here -->
+      <form method="POST" action="{% url 'submit_feedback' target_user.id %}" class="mt-4">
+        {% csrf_token %}
+        <label class="font-semibold block">How was your chat with {{ target_user.username }}?</label>
+      
+        <!-- <div class="flex space-x-2 mt-2">
+          {% for i in "12345" %}
+            <label>
+              <input type="radio" name="stars" value="{{ i }}" class="hidden" />
+              <span class="text-2xl cursor-pointer">⭐</span>
+            </label>
+          {% endfor %}
+        </div> -->
+        <div id="star-rating" class="flex space-x-1 text-2xl text-yellow-400 cursor-pointer">
+          {% for i in "12345" %}
+            <span data-value="{{ i }}" class="star">★</span>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="stars" id="stars-input">
+        
+      
+        <div class="mt-2">
+          <label class="inline-flex items-center">
+            <input type="checkbox" name="report" class="mr-2" />
+            Report this user instead
+          </label>
+        </div>
+      
+        <button type="submit" class="mt-2 bg-blue-600 text-white px-3 py-1 rounded">
+          Submit Feedback
+        </button>
+      </form>
+
+    {% endif %}
+
+    
+    <div class="mt-4">
+      <p class="text-sm">⭐ Average Rating: {{ user.feedback_stats.average_stars|floatformat:1 }}</p>
+      <p class="text-sm text-red-500">🚨 Reports: {{ user.feedback_stats.report_count }}</p>
+    </div>
+    
     <script>
       document.querySelector('#chat-message-input').addEventListener('input', function () {
         chatSocket.send(JSON.stringify({
@@ -57,7 +131,7 @@
     <script>
       const picker = new EmojiButton();
       const trigger = document.querySelector('#emoji-button');
-      const input = document.querySelector('#chat-message-input');
+      const inputI = document.querySelector('#chat-message-input');
 
       if (data.type === 'reaction') {
 
@@ -72,7 +146,7 @@
       }
     
       picker.on('emoji', emoji => {
-        input.value += emoji;
+        inputI.value += emoji;
       });
     
       trigger.addEventListener('click', () => {
@@ -85,6 +159,40 @@
         document.body.classList.toggle('dark');
       });
     </script>
+    <script>
+      const stars = document.querySelectorAll("#star-rating .star");
+      const input = document.getElementById("stars-input");
+    
+      stars.forEach(star => {
+        star.addEventListener("mouseover", () => {
+          const val = parseInt(star.dataset.value);
+          highlightStars(val);
+        });
+        star.addEventListener("mouseout", () => {
+          highlightStars(parseInt(input.value || 0));
+        });
+        star.addEventListener("click", () => {
+          input.value = star.dataset.value;
+          highlightStars(parseInt(input.value));
+        });
+      });
+    
+      function highlightStars(count) {
+        stars.forEach(s => {
+          if (parseInt(s.dataset.value) <= count) {
+            s.classList.add("text-yellow-400");
+            s.classList.remove("text-gray-300");
+          } else {
+            s.classList.add("text-gray-300");
+            s.classList.remove("text-yellow-400");
+          }
+        });
+      }
+    
+      // initialize blank stars
+      highlightStars(0);
+    </script>
+    
   </body>
 
 </html>
